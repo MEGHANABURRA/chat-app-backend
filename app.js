@@ -7,6 +7,7 @@ const mongosanitize = require('express-mongo-sanitize');
 const bodyParser = require('body-parser');
 const xss = require('xss');
 const cors = require('cors');
+const routes = require('./routes/index');
 
 const app = express();
 app.use(express.urlencoded({
@@ -33,5 +34,6 @@ const limiter = rateLimit({
     message: "Too many requests from this IP, Please try again in an hour"
 })
 app.use("/tawk", limiter);
+app.use(routes);
 
 module.exports = app;
