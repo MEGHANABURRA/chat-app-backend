@@ -62,14 +62,14 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre("save", async function(next){
-  if (!this.isModified("otp")) return next();
-  this.otp = await bcrypt.hash(this.otp, 12);
+  if (!this.isModified("otp") || !this.otp) return next();
+  this.otp = await bcrypt.hash(this.otp.toString(), 12);
   next();
 });
 
 
 userSchema.pre("save", async function(next){
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
@@ -96,7 +96,16 @@ userSchema.methods.createPasswordResetToken = function () {
 };
 
 userSchema.methods.changedPasswordAfter = function (timestamp){
-  return timestamp < this.passwordChangedAt;
+  if (this.passwordChangedAt) {
+    const changedTimeStamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimeStamp < changedTimeStamp;
+  }
+
+  // FALSE MEANS NOT CHANGED
+  return false;
 }
 
 const User = mongoose.model("User", userSchema);
