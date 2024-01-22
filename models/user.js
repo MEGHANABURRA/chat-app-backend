@@ -58,19 +58,25 @@ const userSchema = new mongoose.Schema({
   },
   confirmPassword: {
     type: String,
-  }
+  },
 });
 
-userSchema.pre("save", async function(next){
+userSchema.pre("save", async function (next) {
   if (!this.isModified("otp") || !this.otp) return next();
   this.otp = await bcrypt.hash(this.otp.toString(), 12);
   next();
 });
 
-
-userSchema.pre("save", async function(next){
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password") || this.isNew || !this.password)
+    return next();
+
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
@@ -82,7 +88,10 @@ userSchema.methods.checkPassword = async function (
 };
 
 userSchema.methods.checkOtp = async function (candidateOtp, userOtp) {
-  return await bcrypt.compare(candidateOtp, userOtp);
+  console.log("in check otp: "+candidateOtp+" user: "+userOtp);
+  isMatch = await bcrypt.compare(candidateOtp, String(userOtp))
+  console.log("match: "+isMatch);
+  return isMatch;
 };
 
 userSchema.methods.createPasswordResetToken = function () {
@@ -91,22 +100,22 @@ userSchema.methods.createPasswordResetToken = function () {
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-    this.passwordResetExpires = Date.now() + 10*60*1000;
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
   return resetToken;
 };
 
-userSchema.methods.changedPasswordAfter = function (timestamp){
+userSchema.methods.changedPasswordAfter = function (timestamp) {
   if (this.passwordChangedAt) {
     const changedTimeStamp = parseInt(
       this.passwordChangedAt.getTime() / 1000,
       10
     );
-    return JWTTimeStamp < changedTimeStamp;
+    return timestamp < changedTimeStamp;
   }
 
   // FALSE MEANS NOT CHANGED
   return false;
-}
+};
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

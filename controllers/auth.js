@@ -93,7 +93,7 @@ exports.sendOTP = async (req, res, next) => {
   console.log("otp: "+user.otp);
 
   // user = await user.save({ new: true, validateModifiedOnly: true });
-  await user.save();
+  await user.save({ new: true, validateModifiedOnly: true });
   
 
   console.log(new_otp);
@@ -118,9 +118,9 @@ exports.verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
   const user = await User.findOne({
     email,
-    otp_expiry_time: { $gt: Date.now() },
+    otpExpiryTime: { $gt: Date.now() },
   });
-
+  console.log("user: "+user)
   if (!user) {
     return res.status(400).json({
       status: "error",
@@ -134,8 +134,9 @@ exports.verifyOTP = async (req, res, next) => {
       message: "Email is already verified",
     });
   }
-
-  if (!(await user.correctOTP(otp, user.otp))) {
+  
+  const otpMatch = await user.checkOtp(otp, user.otp)
+  if (!otpMatch) {
     res.status(400).json({
       status: "error",
       message: "OTP is incorrect",
@@ -148,7 +149,9 @@ exports.verifyOTP = async (req, res, next) => {
 
   user.verified = true;
   user.otp = undefined;
-  await user.save({ new: true, validateModifiedOnly: true });
+  // user = await user.save({ new: true, validateModifiedOnly: true });
+  console.log("user: "+user);
+  await user.save();
 
   const token = signToken(user._id);
 
