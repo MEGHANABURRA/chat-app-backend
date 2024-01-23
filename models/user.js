@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
+    default: Date.now(),
   },
   updatedAt: {
     type: Date,
@@ -51,7 +52,7 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   otp: {
-    type: Number,
+    type: String,
   },
   otpExpiryTime: {
     type: Date,
@@ -88,10 +89,7 @@ userSchema.methods.checkPassword = async function (
 };
 
 userSchema.methods.checkOtp = async function (candidateOtp, userOtp) {
-  console.log("in check otp: "+candidateOtp+" user: "+userOtp);
-  isMatch = await bcrypt.compare(candidateOtp, String(userOtp))
-  console.log("match: "+isMatch);
-  return isMatch;
+  return await bcrypt.compare(candidateOtp, userOtp);
 };
 
 userSchema.methods.createPasswordResetToken = function () {
